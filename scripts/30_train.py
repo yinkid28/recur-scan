@@ -28,8 +28,8 @@ from recur_scan.transactions import group_transactions, read_labeled_transaction
 n_cv_folds = 3  # number of cross-validation folds, could be 5
 n_hpo_iters = 20  # number of hyperparameter optimization iterations
 
-in_path = "C:\\ADEYINKA\\Codes\\AI Training\\My_pers_trans_project\\recur-scan\\my_in_path\\adeyinka_labeler_1.csv" # type: ignore
-out_dir = "C:\\ADEYINKA\\Codes\\AI Training\\My_pers_trans_project\\recur-scan" # type: ignore
+in_path = "C:\\ADEYINKA\\Codes\\AI Training\\My_pers_trans_project\\in_path\\recur_scan_train - train.csv" # type: ignore
+out_dir = "C:\\ADEYINKA\\Codes\\AI Training\\My_pers_trans_project\\out_dir" # type: ignore
 
 # %%
 # parse script arguments from command line
