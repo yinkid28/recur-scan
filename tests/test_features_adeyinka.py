@@ -6,6 +6,7 @@ import pytest
 
 from recur_scan.features_adeyinka import (
     _get_days,
+    get_amount_consistency_score,
     get_average_days_between_transactions,
     get_is_always_recurring,
     get_n_transactions_days_apart,
@@ -15,6 +16,7 @@ from recur_scan.features_adeyinka import (
     get_subscription_keyword_score,
     get_time_regularity_score,
     get_transaction_amount_variance,
+    get_vendor_recurring_feature,
     parse_date,
 )
 from recur_scan.transactions import Transaction
@@ -382,6 +384,56 @@ def test_get_same_amount_vendor_transactions(transaction, all_transactions, expe
     """Test function to check matching vendor transactions with the same amount."""
     result = get_same_amount_vendor_transactions(transaction, all_transactions)
     assert result == expected, f"Expected {expected}, but got {result}"
+
+
+def test_get_vendor_recurring_feature():
+    # Transaction that should return 1.0
+    t1 = Transaction(id=1, user_id="user1", name="Netflix Monthly Subscription", date="2024-01-01", amount=15.99)
+    result = get_vendor_recurring_feature(t1)
+    assert result == 1.0, f"Expected 1.0, got {result}"
+
+    # Transaction that should return 0.8
+    t2 = Transaction(id=2, user_id="user1", name="Awesome Fitness Plan", date="2024-01-01", amount=50.0)
+    result = get_vendor_recurring_feature(t2)
+    assert result == 1.0, f"Expected 1.0, got {result}"
+
+    # Transaction that should return 0.0
+    t3 = Transaction(id=3, user_id="user1", name="Walmart Supercenter", date="2024-01-01", amount=0.0)
+    result = get_vendor_recurring_feature(t3)
+    assert result == 0.0, f"Expected 0.0, got {result}"
+
+    print("All tests passed!")
+
+
+def test_get_amount_consistency_score():
+    # Consistent amounts → score should be high
+    vendor = "Spotify Premium"
+    transactions_consistent = [
+        Transaction(id=1, user_id="u1", name=vendor, date="2024-01-01", amount=9.99),
+        Transaction(id=2, user_id="u1", name=vendor, date="2024-02-01", amount=9.99),
+        Transaction(id=3, user_id="u1", name=vendor, date="2024-03-01", amount=10.00),
+    ]
+    t_ref = transactions_consistent[0]
+    result = get_amount_consistency_score(t_ref, transactions_consistent)
+    assert result > 0.9, f"Expected > 0.9 for consistent amounts, got {result}"
+
+    # Inconsistent amounts → score should be low
+    vendor_inconsistent = "Utility Bill"
+    transactions_inconsistent = [
+        Transaction(id=4, user_id="u1", name=vendor_inconsistent, date="2024-01-01", amount=10.0),
+        Transaction(id=5, user_id="u1", name=vendor_inconsistent, date="2024-02-01", amount=100.0),
+        Transaction(id=6, user_id="u1", name=vendor_inconsistent, date="2024-03-01", amount=1000.0),
+    ]
+    t_ref2 = transactions_inconsistent[0]
+    result = get_amount_consistency_score(t_ref2, transactions_inconsistent)
+    assert result < 0.5, f"Expected < 0.5 for inconsistent amounts, got {result}"
+
+    # Only one transaction → score should be 0.0
+    single_transaction = [Transaction(id=7, user_id="u1", name="One Time Payment", date="2024-01-01", amount=99.99)]
+    result = get_amount_consistency_score(single_transaction[0], single_transaction)
+    assert result == 0.0, f"Expected 0.0 for single transaction, got {result}"
+
+    print("All amount consistency tests passed!")
 
 
 @pytest.fixture

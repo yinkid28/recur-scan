@@ -281,3 +281,121 @@ def get_same_amount_vendor_transactions(transaction: Transaction, all_transactio
     # print(f"Matching transactions: {matching_transactions}")
 
     return len(matching_transactions)
+
+
+# New Helper features
+
+
+# New features
+
+
+def get_amount_consistency_score(transaction: Transaction, all_transactions: list[Transaction]) -> float:
+    """
+    Measures how consistent the transaction amounts are for the same vendor.
+    Returns a score from 0.0 (inconsistent) to 1.0 (very consistent).
+    """
+    # Filter transactions with the same vendor name
+    same_vendor_txns = [t.amount for t in all_transactions if t.name == transaction.name]
+
+    if len(same_vendor_txns) < 2:
+        return 0.0
+
+    # Calculate mean and mean absolute deviation
+    mean_amount = statistics.mean(same_vendor_txns)
+    mad = statistics.mean([abs(x - mean_amount) for x in same_vendor_txns])
+
+    # Normalize: if MAD is very low, consistency is high
+    # Add 1 to denominator to avoid division by zero
+    consistency_score = 1.0 / (1.0 + mad / (mean_amount + 1e-6))
+
+    # Clamp between 0 and 1
+    return min(max(consistency_score, 0.0), 1.0)
+
+
+def get_vendor_recurring_feature(transaction: Transaction) -> float:
+    """
+    Check if vendor name suggests a recurring service.
+    """
+    # Adjust this property name to match your actual Transaction class
+    vendor = transaction.name.lower()  # or transaction.merchant_name.lower()
+
+    # Known subscription services
+    known_services = [
+        "netflix",
+        "hulu",
+        "disney",
+        "spotify",
+        "apple",
+        "amazon",
+        "prime",
+        "empower",
+        "t-mobile",
+        "verizon",
+        "at&t",
+        "xfinity",
+        "comcast",
+        "fitness",
+        "insurance",
+        "geico",
+        "progressive",
+        "youtube",
+        "grubhub",
+        "doordash",
+        "dashpass",
+        "uber",
+        "sirius",
+        "utilities",
+        "energy",
+        "water",
+        "electric",
+        "gas",
+        "google",
+        "microsoft",
+        "firstenergy",
+        "brigit",
+        "cleo",
+        "earnin",
+        "dave",
+        "affirm",
+        "afterpay",
+    ]
+
+    # Keywords suggesting subscription services
+    subscription_keywords = [
+        "subscription",
+        "member",
+        "premium",
+        "plus",
+        "monthly",
+        "annual",
+        "service",
+        "plan",
+        "insurance",
+        "utility",
+        "bill",
+        "mobile",
+        "wireless",
+        "fitness",
+        "streaming",
+        "app",
+        "online",
+    ]
+
+    # Check for exact service matches
+    for service in known_services:
+        if service in vendor:
+            return 1.0
+
+    # Check for subscription keywords
+    for keyword in subscription_keywords:
+        if keyword in vendor:
+            return 0.8
+
+    return 0.0
+
+
+def get_new_features(transaction: Transaction, all_transactions: list[Transaction]) -> dict[str, int | bool | float]:
+    return {
+        "is_vendor_recurring": get_vendor_recurring_feature(transaction) > 0.7,
+        "amount_consistency_score": get_amount_consistency_score(transaction, all_transactions),
+    }
